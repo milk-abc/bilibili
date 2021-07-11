@@ -1,2 +1,2 @@
 # bilibli
-bilibili项目教学视频记录
+bilibili前端全栈项目教学视频记录

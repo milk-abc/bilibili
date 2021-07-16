@@ -1,2 +1,1 @@
-# bilibli
-bilibili前端全栈项目教学视频记录
+# 前端小型练手项目demo

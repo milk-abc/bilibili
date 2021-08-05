@@ -7,5 +7,14 @@
 // eslint-disable-next-line linebreak-style
 // 生产环境比开发环境多以压缩js代码
 // eslint-disable-next-line quotes
+// import "@babel/polyfill";
 import "../css/a.css";
 import "../css/b.css";
+
+const add = (x, y) => x + y;
+console.log(add(2, 5));
+const promise = new Promise((resolve, reject) => {
+  console.log("定时器执行晚了");
+  resolve(2);
+});
+console.log(promise);

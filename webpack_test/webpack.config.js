@@ -1,24 +1,39 @@
-/* eslint-disable spaced-comment */
-/* eslint-disable linebreak-style */
 // webpack的配置文件
 // 开发环境的配置：能让代码自动化运行
 // 生产环境的配置：压缩、兼容
 // 作用：指示webpack干哪些活，运行webpack指令时，会加载里面的配置
+// HMR:hot module replacement 热模块替换
+// 作用：一个模块发生变化，只会重新打包这一个模块，而不是打包所有模块
+// 极大提升构建速度
+// 样式文件：可以使用HMR功能：因为style-loader中实现了
+// js文件：默认没有HMR功能-->需要修改js代码，添加支持HMR功能的代码
+// 注意：HMR功能对js的处理，只能处理非入口js文件的其他文件。
+// html文件：默认不能使用HMR功能，同时会导致问题：html文件不能热更新了(不用做HMR功能)
+// 解决：修改entry入口，将html文件引入
 // 所有的构建工具都是基于nodejs平台运行的!模块化默认采用commonjs
 // 项目的代码和配置的代码是两方面ES6/CommonJs
 // resolve用来拼接绝对路径的方法
+// tree shaking:去除无用代码
+// 必须使用ES6模块化 开启production环境
+// 减少代码体积
+// 在package.json中配置sideEffects:false 所有代码都没有副作用(都可以进行treeshaking)
+// 问题：可能会把css/@babel/polyfill文件去掉
+// 解决sideEffects:['*.css','*.less']
 const { resolve } = require("path");
 const HtmlPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const workboxWebpackPlugin = require("workbox-webpack-plugin");
 const OptimizeCssAssetsWebpackPlugin = require("optimize-css-assets-webpack-plugin");
-//定义nodejs环境变量：决定使用browserslist的哪个环境
-process.env.NODE_ENV = "production";
-//复用loader
+// 定义nodejs环境变量：决定使用browserslist的哪个环境
+// process.env.NODE_ENV = "production";
+// PWA:渐进式网络开发应用程序(离线可访问)  workbox
+
+// 复用loader
 const commonCssLoader = [
   MiniCssExtractPlugin.loader,
   "css-loader",
   {
-    //还需要在package.json中定义browserslist
+    // 还需要在package.json中定义browserslist
     loader: "postcss-loader",
     options: {
       ident: "postcss",
@@ -30,9 +45,16 @@ const commonCssLoader = [
 // optimize-css-assets-webpack-plugin
 module.exports = {
   // webpack的配置
-  entry: "./src/js/index.js",
+  // 单入口
+  // entry: ["./src/js/index.js", "./src/index.html"],
+  // 多入口:一个入口，就输出一个对应的bundle
+  entry: {
+    main: "./src/js/index.js",
+    // test: "./src/js/test.js",
+  },
   output: {
-    filename: "js/built.js",
+    // [name]：取文件名
+    filename: "js/[name].[contenthash:10].js",
     // __dirname nodejs的变量，代表当前文件的目录绝对路径
     path: resolve(__dirname, "build"),
   },
@@ -43,7 +65,7 @@ module.exports = {
       {
         // 匹配哪些文件
         test: /\.css$/,
-        use: [...commonCssLoader],
+        use: ["style-loader", ...commonCssLoader],
         // 使用哪些loader
         // use: [
         //   // use数组中loader执行顺序，从右到左，从下到上，依次执行
@@ -71,7 +93,7 @@ module.exports = {
       {
         // 匹配哪些文件
         test: /\.less$/,
-        use: [...commonCssLoader, "less-loader"],
+        use: ["style-loader", ...commonCssLoader, "less-loader"],
         // 使用哪些loader
         // use: [
         //   // use数组中loader执行顺序，从右到左，从下到上，依次执行
@@ -137,37 +159,60 @@ module.exports = {
       // },
       {
         // js兼容性处理，将es6转换为es5
-        //1.基本js兼容性处理-->@babel/preset-env
-        //问题：只能转换基本语法，promise不能转换等
-        //2.全部js兼容性处理-->@babel/polyfill
-        //问题：我只需要解决部分兼容性问题，但是将所有兼容性代码全部引入，体积太大
-        //3.需要做兼容性处理用按需加载-->core-js
-        //一个文件只能被一个loader处理，当一个文件要被多个loader处理
-        //那么一定要指定loader执行的顺序，先执行eslint再执行babel
+        // 1.基本js兼容性处理-->@babel/preset-env
+        // 问题：只能转换基本语法，promise不能转换等
+        // 2.全部js兼容性处理-->@babel/polyfill
+        // 问题：我只需要解决部分兼容性问题，但是将所有兼容性代码全部引入，体积太大
+        // 3.需要做兼容性处理用按需加载-->core-js
+        // 一个文件只能被一个loader处理，当一个文件要被多个loader处理
+        // 那么一定要指定loader执行的顺序，先执行eslint再执行babel
+        // 缓存
+        // babel缓存
+        // cacheDirectory:true  第二次打包构建速度更快
+        // 文件资源缓存
+        // hash:每次都会生成不同的hash
+        // chunkhash:不同chunk生成不同的hash
+        // contenthash:内容改变生成不同的hash
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: "babel-loader",
-        options: {
-          presets: [
-            [
-              "@babel/preset-env",
-              //按需加载
-              {
-                useBuiltIns: "usage",
-                //指定core-js版本
-                corejs: { version: 3 },
-                //指定兼容性做到哪个版本浏览器
-                targets: {
-                  chrome: "60",
-                  firefox: "60",
-                  ie: "9",
-                  safari: "10",
-                  edge: "17",
-                },
-              },
-            ],
-          ],
-        },
+        use: [
+          // 开启多进程打包
+          // 进程启动大概为600ms，进程通信也有开销
+          // 只有工作消耗时间比较长，才需要多进程打包
+          {
+            loader: "thread-loader",
+            options: {
+              workers: 2,
+            },
+          },
+          {
+            loader: "babel-loader",
+            options: {
+              presets: [
+                [
+                  "@babel/preset-env",
+                  // 按需加载
+                  {
+                    useBuiltIns: "usage",
+                    // 指定core-js版本
+                    corejs: { version: 3 },
+                    // 指定兼容性做到哪个版本浏览器
+                    targets: {
+                      chrome: "60",
+                      firefox: "60",
+                      ie: "9",
+                      safari: "10",
+                      edge: "17",
+                    },
+                  },
+                ],
+              ],
+              // 开启babel缓存
+              // 第二次构建时会读取之前的缓存
+              cacheDirectory: true,
+            },
+          },
+        ],
       },
     ],
   },
@@ -176,18 +221,32 @@ module.exports = {
   plugins: [
     new HtmlPlugin({
       template: "./src/index.html",
-      //压缩html代码
+      // 压缩html代码
       minify: {
-        //移除空格
+        // 移除空格
         collapseWhitespace: true,
-        //移除注释
+        // 移除注释
         removeComments: true,
       },
     }),
-    new MiniCssExtractPlugin({ filename: "css/built.css" }),
+    new MiniCssExtractPlugin({ filename: "css/built.[contenthash:10].css" }),
     new OptimizeCssAssetsWebpackPlugin(),
+    new workboxWebpackPlugin.GenerateSW({
+      // 帮助serviceworker快速启动
+      // 删除旧的serviceworker
+      // 生成一个serviceworker的配置文件
+      clientsClaim: true,
+      skipWaiting: true,
+    }),
   ],
-  //生产环境下会自动压缩js代码
+  // 可以将node_modules中代码单独打包成一个chunk最终输出
+  // 自动分析多入口chunk中有没有公共的文件。如果有会单独打包成一个chunk
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
+  // 生产环境下会自动压缩js代码
   mode: "production",
   // 开发服务器devServer:用来自动化(自动编译，自动打开浏览器，自动刷新浏览器)
   // 特点：只会在内存中编译打包，不会有任何输出
@@ -201,5 +260,8 @@ module.exports = {
   //   port: 3000,
   //   // 自动打开默认浏览器
   //   open: true,
+  //   // 开启HMR功能
+  //   // 当修改了webpack配置，新配置想要生效，必须重启webpack服务
+  //   hot: true,
   // },
 };

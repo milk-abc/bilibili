@@ -1,0 +1,18 @@
+{
+  "name": "Loader_webpack",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "dependencies": {
+    "@babel/core": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "loader-utils": "^2.0.0",
+    "mime": "^2.5.2",
+    "schema": "^0.2.1",
+    "schema-utils": "^3.1.1"
+  }
+}
